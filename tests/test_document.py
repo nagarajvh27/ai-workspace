@@ -58,3 +58,27 @@ def test_document_rename_rejects_blank_title() -> None:
         document.rename("   ")
 
     assert document.title == "Original title"
+
+
+def test_document_publish_marks_document_as_published() -> None:
+    document = Document(
+        title="Release notes",
+        content="Ready for publication.",
+    )
+
+    document.publish()
+
+    assert document.published is True
+
+
+def test_document_publish_rejects_already_published_document() -> None:
+    document = Document(
+        title="Release notes",
+        content="Ready for publication.",
+    )
+    document.publish()
+
+    with pytest.raises(ValueError, match="Document is already published"):
+        document.publish()
+
+    assert document.published is True

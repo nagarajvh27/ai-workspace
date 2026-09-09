@@ -22,8 +22,18 @@ class Document:
     def __post_init__(self) -> None:
         self.title = _normalize_title(self.title)
 
+
     def rename(self, new_title: str) -> None:
         self.title = _normalize_title(new_title)
 
+
     def word_count(self) -> int:
         return len(self.content.split())
+
+
+    def publish(self) -> None:
+
+        if self.published:
+            raise ValueError("Document is already published")
+        
+        self.published = True
