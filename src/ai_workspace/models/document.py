@@ -1,5 +1,24 @@
 from dataclasses import dataclass, field
 
+def _normalize_name(name: object) -> str:
+    if not isinstance(name, str):
+        raise TypeError("Author name must be text")
+
+    normalized_name = name.strip()
+
+    if not normalized_name:
+        raise ValueError("Author name cannot be blank")
+
+    return normalized_name
+
+@dataclass(frozen=True)
+class Author:
+    name: str
+
+    def __post_init__(self) -> None:
+        normalized_name = _normalize_name(self.name)
+        object.__setattr__(self, "name", normalized_name)
+
 
 def _normalize_title(title: str) -> str:
     if not isinstance(title, str):
@@ -18,6 +37,7 @@ def _normalize_title(title: str) -> str:
 class Document:
     title: str
     content: str
+    author: Author
     _published: bool = field(default=False, init=False, repr=False)
 
     @property
