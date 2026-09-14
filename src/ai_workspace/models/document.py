@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 def _normalize_title(title: str) -> str:
@@ -18,10 +18,14 @@ def _normalize_title(title: str) -> str:
 class Document:
     title: str
     content: str
-    published: bool = False
+    _published: bool = field(default=False, init=False, repr=False)
+
+    @property
+    def is_published(self) -> bool:
+        return self._published
 
     def _ensure_draft(self) -> None:
-        if self.published:
+        if self._published:
             raise ValueError("Cannot modify a published document")
 
 
@@ -41,10 +45,10 @@ class Document:
 
     def publish(self) -> None:
 
-        if self.published:
+        if self._published:
             raise ValueError("Document is already published")
 
-        self.published = True
+        self._published = True
 
     def update_content(self, new_content: str) -> None:
         self._ensure_draft()

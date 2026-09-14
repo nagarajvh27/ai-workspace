@@ -68,7 +68,7 @@ def test_document_publish_marks_document_as_published() -> None:
 
     document.publish()
 
-    assert document.published is True
+    assert document.is_published is True
 
 
 def test_document_publish_rejects_already_published_document() -> None:
@@ -81,7 +81,7 @@ def test_document_publish_rejects_already_published_document() -> None:
     with pytest.raises(ValueError, match="Document is already published"):
         document.publish()
 
-    assert document.published is True
+    assert document.is_published is True
 
 
 def test_document_update_content_changes_draft_document() -> None:
@@ -146,10 +146,27 @@ def test_excerpt_does_not_change_document_state() -> None:
     assert document.excerpt(5) == "Hello"
     assert document.title == "Note"
     assert document.content == "Hello world"
-    assert document.published is True
+    assert document.is_published is True
 
 def test_excerpt_rejects_non_int() -> None:
     document = Document(title="Note", content="Hello")
 
     with pytest.raises(TypeError):
         document.excerpt("5")
+
+def test_new_document_is_not_published():
+    document = Document(title="Draft", content="Body")
+
+    assert document.is_published is False
+
+def test_document_cannot_be_created_as_published():
+    with pytest.raises(TypeError):
+        Document(title="Draft", content="Body", published=True)
+
+def test_published_status_is_read_only():
+    document = Document(title="Draft", content="Body")
+
+    with pytest.raises(AttributeError):
+        document.is_published = True
+
+    assert document.is_published is False
