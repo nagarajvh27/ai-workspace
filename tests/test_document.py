@@ -182,7 +182,8 @@ def test_published_status_is_read_only():
 
     assert document.is_published is False
 
-def test_exposes_its_author() -> None:
+
+def test_document_exposes_the_supplied_author() -> None:
     author = Author("Ada Lovelace")
 
     document = Document(
@@ -191,7 +192,17 @@ def test_exposes_its_author() -> None:
         author=author,
     )
 
-    assert document.author == author
+    assert document.author is author
+
+
+@pytest.mark.parametrize("invalid_author", ["Ada Lovelace", None])
+def test_document_rejects_non_author_values(invalid_author) -> None:
+    with pytest.raises(TypeError):
+        Document(
+            title="Analytical Engine notes",
+            content="A draft document.",
+            author=invalid_author,
+        )
 
 
 

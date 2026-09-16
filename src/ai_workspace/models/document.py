@@ -53,6 +53,9 @@ class Document:
     def __post_init__(self) -> None:
         self.title = _normalize_title(self.title)
 
+        if not isinstance(self.author, Author):
+            raise TypeError("author must be an Author")
+
 
     def rename(self, new_title: str) -> None:
         self._ensure_draft()
