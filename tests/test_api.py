@@ -125,3 +125,12 @@ def test_create_document_rejects_client_supplied_id():
     )
 
     assert response.status_code == 422
+
+
+def test_create_document_rejects_missing_required_field():
+    payload = document_payload()
+    del payload["author_name"]
+
+    response = client.post("/documents", json=payload)
+
+    assert response.status_code == 422
