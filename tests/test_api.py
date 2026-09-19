@@ -11,13 +11,11 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def reset_document_store():
-    api.documents_by_id.clear()
-    api.next_document_id = 1
+    api.document_repository.clear()
 
     yield
 
-    api.documents_by_id.clear()
-    api.next_document_id = 1
+    api.document_repository.clear()
 
 
 def document_payload() -> dict[str, str]:

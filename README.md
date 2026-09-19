@@ -11,7 +11,7 @@ AI Workspace v0 currently provides a small FastAPI API for creating and reading 
 - `POST /documents` creates a document with a server-assigned ID.
 - `GET /documents/{document_id}` returns one document or `404 Not Found`.
 
-The API keeps request schemas, domain models, and public response schemas separate. A request is explicitly mapped to the `Author` and `Document` domain models before it is stored and returned.
+The API keeps request schemas, domain models, application orchestration, in-memory storage, and public response schemas separate. FastAPI routes call `DocumentService`, which constructs `Author` and `Document` domain models and delegates server-owned identity and storage to `InMemoryDocumentRepository`.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ The API is then available at `http://127.0.0.1:8000`.
 ./.venv/bin/python -m pytest
 ```
 
-Latest local verification: 43 tests passed.
+Latest local verification: 51 tests passed.
 
 ## API overview
 
@@ -102,7 +102,7 @@ Invalid request shapes and domain validation failures return `422 Unprocessable 
 
 Document data is stored only in process memory. It is lost when the application restarts and is not durable, concurrent-safe, multi-process-safe, or backed by a database.
 
-This repository does not yet include PostgreSQL, SQLAlchemy, migrations, a repository or service layer, authentication, Docker, CI, or a production deployment.
+This repository does not yet include PostgreSQL, SQLAlchemy, migrations, authentication, Docker, CI, or a production deployment.
 
 ## Development status
 

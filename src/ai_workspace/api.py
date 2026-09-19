@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from ai_workspace.models.document import Author, Document
+from ai_workspace.models.document import Document
+from ai_workspace.repositories import InMemoryDocumentRepository
+from ai_workspace.services import DocumentService
 
 
 class DocumentCreate(BaseModel):
@@ -20,8 +22,8 @@ class DocumentResponse(BaseModel):
     is_published: bool
 
 
-documents_by_id: dict[int, Document] = {}
-next_document_id = 1
+document_repository = InMemoryDocumentRepository()
+document_service = DocumentService(document_repository)
 
 
 def _to_document_response(
@@ -48,7 +50,7 @@ def health():
 def list_documents() -> list[DocumentResponse]:
     return [
         _to_document_response(document_id, document)
-        for document_id, document in documents_by_id.items()
+        for document_id, document in document_service.list_documents()
     ]
 
 
@@ -60,24 +62,17 @@ def list_documents() -> list[DocumentResponse]:
 def create_document(
     request: DocumentCreate, response: Response
 ) -> DocumentResponse:
-    global next_document_id
-
     try:
-        author = Author(name=request.author_name)
-        document = Document(
+        document_id, document = document_service.create_document(
             title=request.title,
             content=request.content,
-            author=author,
+            author_name=request.author_name,
         )
     except (TypeError, ValueError) as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from error
-
-    document_id = next_document_id
-    documents_by_id[document_id] = document
-    next_document_id += 1
 
     response.headers["Location"] = f"/documents/{document_id}"
 
@@ -89,7 +84,7 @@ def create_document(
     response_model=DocumentResponse,
 )
 def get_document(document_id: int) -> DocumentResponse:
-    document = documents_by_id.get(document_id)
+    document = document_service.get_document(document_id)
 
     if document is None:
         raise HTTPException(
