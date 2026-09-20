@@ -1,3 +1,6 @@
+import pytest
+
+from ai_workspace.exceptions import DomainValidationError
 from ai_workspace.repositories import InMemoryDocumentRepository
 from ai_workspace.services import DocumentService
 
@@ -56,3 +59,16 @@ def test_list_documents_returns_stored_documents_with_ids() -> None:
         (first_id, first_document),
         (second_id, second_document),
     ]
+
+
+def test_create_document_propagates_domain_validation_without_storing() -> None:
+    service, repository = make_service()
+
+    with pytest.raises(DomainValidationError):
+        service.create_document(
+            title="Design notes",
+            content="First draft",
+            author_name="   ",
+        )
+
+    assert repository.list_all() == []

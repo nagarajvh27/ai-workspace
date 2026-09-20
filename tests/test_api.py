@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -104,7 +106,10 @@ def test_get_missing_document_returns_not_found():
     assert response.json() == {"detail": "Document not found"}
 
 
-def test_create_document_returns_unprocessable_for_domain_error():
+def test_create_document_returns_unprocessable_for_domain_error(
+    caplog,
+):
+    caplog.set_level(logging.INFO, logger=api.__name__)
     payload = document_payload()
     payload["author_name"] = "   "
 
@@ -114,6 +119,21 @@ def test_create_document_returns_unprocessable_for_domain_error():
     assert response.json() == {
         "detail": "Author name cannot be blank"
     }
+    assert api.document_repository.list_all() == []
+
+    records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None)
+        == "document_creation_rejected"
+    ]
+
+    assert len(records) == 1
+    record = records[0]
+    assert record.operation == "create_document"
+    assert record.failure_category == "domain_validation"
+    assert record.http_status == 422
+    assert record.exception_type == "DomainValidationError"
 
 
 def test_create_document_rejects_client_supplied_id():
@@ -132,3 +152,37 @@ def test_create_document_rejects_missing_required_field():
     response = client.post("/documents", json=payload)
 
     assert response.status_code == 422
+
+
+def test_create_document_does_not_translate_unexpected_value_error(
+    monkeypatch,
+    caplog,
+):
+    caplog.set_level(logging.INFO, logger=api.__name__)
+    internal_detail = "sensitive-internal-detail"
+
+    def fail_create_document(**_kwargs):
+        raise ValueError(internal_detail)
+
+    monkeypatch.setattr(
+        api.document_service,
+        "create_document",
+        fail_create_document,
+    )
+    error_client = TestClient(
+        app,
+        raise_server_exceptions=False,
+    )
+
+    response = error_client.post(
+        "/documents",
+        json=document_payload(),
+    )
+
+    assert response.status_code == 500
+    assert internal_detail not in response.text
+    assert all(
+        getattr(record, "event", None)
+        != "document_creation_rejected"
+        for record in caplog.records
+    )

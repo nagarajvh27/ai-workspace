@@ -1,9 +1,14 @@
+import logging
+
 from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
+from ai_workspace.exceptions import DomainValidationError
 from ai_workspace.models.document import Document
 from ai_workspace.repositories import InMemoryDocumentRepository
 from ai_workspace.services import DocumentService
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentCreate(BaseModel):
@@ -68,7 +73,17 @@ def create_document(
             content=request.content,
             author_name=request.author_name,
         )
-    except (TypeError, ValueError) as error:
+    except DomainValidationError as error:
+        logger.info(
+            "document_creation_rejected",
+            extra={
+                "event": "document_creation_rejected",
+                "operation": "create_document",
+                "failure_category": "domain_validation",
+                "http_status": status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "exception_type": type(error).__name__,
+            },
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),

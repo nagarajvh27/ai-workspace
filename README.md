@@ -13,6 +13,8 @@ AI Workspace v0 currently provides a small FastAPI API for creating and reading 
 
 The API keeps request schemas, domain models, application orchestration, in-memory storage, and public response schemas separate. FastAPI routes call `DocumentService`, which constructs `Author` and `Document` domain models and delegates server-owned identity and storage to `InMemoryDocumentRepository`.
 
+Handled domain validation failures are translated at the HTTP boundary and logged once with privacy-safe structured context. Unexpected built-in failures remain server errors rather than being presented as client validation failures.
+
 ## Requirements
 
 - Python 3.12 or later
@@ -40,7 +42,7 @@ The API is then available at `http://127.0.0.1:8000`.
 ./.venv/bin/python -m pytest
 ```
 
-Latest local verification: 51 tests passed.
+Latest local verification: 53 tests passed with 2 known upstream test-client deprecation warnings.
 
 ## API overview
 

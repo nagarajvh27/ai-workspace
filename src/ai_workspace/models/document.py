@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 
+from ai_workspace.exceptions import DomainValidationError
+
+
 def _normalize_name(name: object) -> str:
     if not isinstance(name, str):
         raise TypeError("Author name must be text")
@@ -7,7 +10,7 @@ def _normalize_name(name: object) -> str:
     normalized_name = name.strip()
 
     if not normalized_name:
-        raise ValueError("Author name cannot be blank")
+        raise DomainValidationError("Author name cannot be blank")
 
     return normalized_name
 
@@ -27,7 +30,7 @@ def _normalize_title(title: str) -> str:
     normalized_title = title.strip()
 
     if not normalized_title:
-        raise ValueError("Title cannot be blank")
+        raise DomainValidationError("Title cannot be blank")
 
     return normalized_title
 
@@ -46,7 +49,9 @@ class Document:
 
     def _ensure_draft(self) -> None:
         if self._published:
-            raise ValueError("Cannot modify a published document")
+            raise DomainValidationError(
+                "Cannot modify a published document"
+            )
 
 
 
@@ -69,7 +74,9 @@ class Document:
     def publish(self) -> None:
 
         if self._published:
-            raise ValueError("Document is already published")
+            raise DomainValidationError(
+                "Document is already published"
+            )
 
         self._published = True
 
@@ -82,6 +89,6 @@ class Document:
             raise TypeError("max_chars must be an integer")
 
         if max_chars < 0:
-            raise ValueError("max_chars cannot be negative")
+            raise DomainValidationError("max_chars cannot be negative")
 
         return self.content[:max_chars]

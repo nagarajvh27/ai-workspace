@@ -1,6 +1,7 @@
 import pytest
 
-from ai_workspace.models.document import Document, Author
+from ai_workspace.exceptions import DomainValidationError
+from ai_workspace.models.document import Author, Document
 
 
 def test_document_word_count() -> None:
@@ -24,7 +25,10 @@ def test_document_normalizes_title() -> None:
 
 
 def test_document_rejects_blank_title() -> None:
-    with pytest.raises(ValueError, match="Title cannot be blank"):
+    with pytest.raises(
+        DomainValidationError,
+        match="Title cannot be blank",
+    ):
         Document(
             title="   ",
             content="This document should not be created.",
@@ -60,7 +64,10 @@ def test_document_rename_rejects_blank_title() -> None:
         author=Author("Ada Lovelace"),
     )
 
-    with pytest.raises(ValueError, match="Title cannot be blank"):
+    with pytest.raises(
+        DomainValidationError,
+        match="Title cannot be blank",
+    ):
         document.rename("   ")
 
     assert document.title == "Original title"
@@ -219,7 +226,7 @@ class TestAuthor:
 
     @pytest.mark.parametrize("name", ["", "   ", "\n\t"])
     def test_rejects_blank_names(self, name: str) -> None:
-        with pytest.raises(ValueError, match="name"):
+        with pytest.raises(DomainValidationError, match="name"):
             Author(name)
 
     @pytest.mark.parametrize("name", [None, 42, []])
