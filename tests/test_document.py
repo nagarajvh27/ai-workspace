@@ -93,7 +93,10 @@ def test_document_publish_rejects_already_published_document() -> None:
     )
     document.publish()
 
-    with pytest.raises(ValueError, match="Document is already published"):
+    with pytest.raises(
+        DomainValidationError,
+        match="Document is already published",
+    ):
         document.publish()
 
     assert document.is_published is True
@@ -119,7 +122,10 @@ def test_document_rename_rejects_published_document() -> None:
     )
     document.publish()
 
-    with pytest.raises(ValueError, match="Cannot modify a published document"):
+    with pytest.raises(
+        DomainValidationError,
+        match="Cannot modify a published document",
+    ):
         document.rename("Changed title")
 
     assert document.title == "Original title"
@@ -133,7 +139,10 @@ def test_document_update_content_rejects_published_document() -> None:
     )
     document.publish()
 
-    with pytest.raises(ValueError, match="Cannot modify a published document"):
+    with pytest.raises(
+        DomainValidationError,
+        match="Cannot modify a published document",
+    ):
         document.update_content("Changed content.")
 
     assert document.content == "Original content."
@@ -153,7 +162,10 @@ def test_excerpt_returns_all_content_when_shorter_than_limit() -> None:
 def test_excerpt_rejects_negative_limit() -> None:
     document = Document(title="Note", content="Hello", author=Author("Ada Lovelace"),)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        DomainValidationError,
+        match="max_chars cannot be negative",
+    ):
         document.excerpt(-1)
 
 
