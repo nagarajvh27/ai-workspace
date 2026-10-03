@@ -1,4 +1,17 @@
+from typing import Protocol
+
 from ai_workspace.models.document import Document
+
+
+class DocumentRepository(Protocol):
+    def add(self, document: Document) -> int:
+        ...
+
+    def get(self, document_id: int) -> Document | None:
+        ...
+
+    def list_all(self) -> list[tuple[int, Document]]:
+        ...
 
 
 class InMemoryDocumentRepository:

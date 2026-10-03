@@ -1,11 +1,11 @@
 from ai_workspace.models.document import Author, Document
-from ai_workspace.repositories import InMemoryDocumentRepository
+from ai_workspace.repositories import DocumentRepository
 
 
 class DocumentService:
     def __init__(
         self,
-        repository: InMemoryDocumentRepository,
+        repository: DocumentRepository,
     ) -> None:
         self._repository = repository
 
