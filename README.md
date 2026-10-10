@@ -63,11 +63,44 @@ The API is then available at `http://127.0.0.1:8000`.
 
 ## Run tests
 
+The ordinary unit and API tests do not require PostgreSQL:
+
 ```bash
 ./.venv/bin/python -m pytest
 ```
 
-Latest local verification: 63 tests passed with 2 known upstream test-client deprecation warnings. Manual PostgreSQL 18.6 verification confirmed schema creation, database-generated identity, create/read/list behavior, direct row storage, and persistence across an application restart.
+PostgreSQL integration tests require a dedicated database named exactly
+`ai_workspace_test`. For a local Postgres.app installation using its Unix
+socket:
+
+```bash
+createdb ai_workspace_test
+export TEST_DATABASE_URL="postgresql+psycopg:///ai_workspace_test?host=/tmp"
+./.venv/bin/python -m pytest -m integration
+```
+
+For another PostgreSQL installation, use the same database name and provide
+the appropriate local connection details through `TEST_DATABASE_URL`. Never
+commit credentials.
+
+The integration-test safety guard refuses non-PostgreSQL URLs and any database
+whose name is not exactly `ai_workspace_test`. After that guard succeeds, the
+test fixtures recreate the `documents` table from `sql/documents_schema.sql`
+and run `TRUNCATE TABLE documents RESTART IDENTITY` before and after each test.
+Never point `TEST_DATABASE_URL` at a database containing non-test data.
+
+With `TEST_DATABASE_URL` configured, the complete suite includes the real
+PostgreSQL tests:
+
+```bash
+./.venv/bin/python -m pytest
+```
+
+Latest local verification: 66 tests passed with 2 known upstream test-client
+deprecation warnings. The automated PostgreSQL tests prove API create,
+retrieve, and list behavior, direct committed row storage, and rollback of a
+flushed insert after an injected pre-commit failure. Earlier manual PostgreSQL
+18.6 verification also confirmed persistence across an application restart.
 
 ## API overview
 
@@ -127,9 +160,11 @@ Invalid request shapes and domain validation failures return `422 Unprocessable 
 
 ## Current limitations
 
-The production composition persists documents in PostgreSQL, but schema setup is currently an explicit manual step. The repository does not yet include Alembic migration configuration, automated PostgreSQL integration-test infrastructure, authentication, Docker, CI, or a production deployment.
+The production composition persists documents in PostgreSQL, but schema setup is currently an explicit manual step. The repository does not yet include Alembic migration configuration, authentication, Docker, CI, or a production deployment.
 
-The ordinary test suite intentionally composes `InMemoryDocumentRepository`; passing it does not prove PostgreSQL connectivity or behavior. PostgreSQL verification must be run separately against a real database.
+Most unit and API tests intentionally compose `InMemoryDocumentRepository`.
+The marked integration tests separately compose `PostgresDocumentRepository`
+and require the explicitly configured real PostgreSQL test database.
 
 ## Development status
 

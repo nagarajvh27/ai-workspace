@@ -27,3 +27,6 @@ packages = ["src/ai_workspace"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "integration: requires a dedicated PostgreSQL test database",
+]
