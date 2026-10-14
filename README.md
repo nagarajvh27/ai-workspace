@@ -17,8 +17,10 @@ Handled domain validation failures are translated at the HTTP boundary and logge
 
 ## Requirements
 
-- Python 3.12 or later
-- A reachable PostgreSQL database
+Choose one local setup:
+
+- Host-based setup: Python 3.12 or later and a reachable PostgreSQL database.
+- Container-based setup: Docker with the Compose plugin.
 
 ## Setup
 
@@ -61,6 +63,49 @@ Replace every uppercase placeholder locally. Do not commit real credentials.
 
 The API is then available at `http://127.0.0.1:8000`.
 
+## Run with Docker Compose
+
+The Compose setup runs FastAPI and PostgreSQL 18 as separate services. It uses
+the existing `pyproject.toml` dependency metadata and
+`sql/documents_schema.sql` bootstrap DDL.
+
+Set a local-only, URL-safe PostgreSQL password in the current shell:
+
+```bash
+export POSTGRES_PASSWORD="choose-a-local-development-password"
+```
+
+Then build and start the services:
+
+```bash
+docker compose up --build
+```
+
+The API is available at `http://127.0.0.1:8000`. PostgreSQL is intentionally
+not published to the host; the FastAPI container reaches it through the
+Compose service name `db`.
+
+Stop and remove the containers with:
+
+```bash
+docker compose down
+```
+
+The named `postgres_data` volume remains after the containers are removed, so
+development data survives container replacement. Explicitly deleting that
+volume deletes the stored PostgreSQL data.
+
+`sql/documents_schema.sql` runs automatically only when PostgreSQL initializes
+an empty data directory. Changing that file does not update an existing
+database volume, and the file is not a migration system.
+
+The Compose database is the development database `ai_workspace`. Integration
+tests remain separate and still require `TEST_DATABASE_URL` to name exactly
+`ai_workspace_test`. Never point the destructive integration-test setup at the
+Compose development database.
+
+Do not commit real credentials or local environment files.
+
 ## Run tests
 
 The ordinary unit and API tests do not require PostgreSQL:
@@ -96,11 +141,13 @@ PostgreSQL tests:
 ./.venv/bin/python -m pytest
 ```
 
-Latest local verification: 66 tests passed with 2 known upstream test-client
-deprecation warnings. The automated PostgreSQL tests prove API create,
-retrieve, and list behavior, direct committed row storage, and rollback of a
-flushed insert after an injected pre-commit failure. Earlier manual PostgreSQL
-18.6 verification also confirmed persistence across an application restart.
+Latest ordinary-suite verification: 68 tests passed, 3 PostgreSQL integration
+tests were skipped because `TEST_DATABASE_URL` was not configured, and 2 known
+upstream test-client deprecation warnings remained. A separate configured
+PostgreSQL integration run proved API create, retrieve, and list behavior,
+direct committed row storage, and rollback of a flushed insert after an
+injected pre-commit failure. Earlier manual PostgreSQL 18.6 verification also
+confirmed persistence across an application restart.
 
 ## API overview
 
@@ -160,7 +207,9 @@ Invalid request shapes and domain validation failures return `422 Unprocessable 
 
 ## Current limitations
 
-The production composition persists documents in PostgreSQL, but schema setup is currently an explicit manual step. The repository does not yet include Alembic migration configuration, authentication, Docker, CI, or a production deployment.
+The repository includes a local Docker Compose setup, but schema changes still
+use explicit bootstrap SQL rather than Alembic migrations. The application
+does not yet include authentication, CI, or a production deployment.
 
 Most unit and API tests intentionally compose `InMemoryDocumentRepository`.
 The marked integration tests separately compose `PostgresDocumentRepository`
