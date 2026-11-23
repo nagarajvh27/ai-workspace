@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  ordinary-tests:
+    name: Ordinary tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install project and development dependencies
+        run: python -m pip install --editable ".[dev]"
+
+      - name: Check installed dependencies
+        run: python -m pip check
+
+      - name: Run tests
+        run: python -m pytest
+
+  postgres-integration:
+    name: PostgreSQL integration tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: ai_workspace_test
+          POSTGRES_USER: ai_workspace_ci
+          POSTGRES_PASSWORD: ci_only_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_workspace_ci -d ai_workspace_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://ai_workspace_ci:ci_only_password@localhost:5432/ai_workspace_test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install project and development dependencies
+        run: python -m pip install --editable ".[dev]"
+
+      - name: Check installed dependencies
+        run: python -m pip check
+
+      - name: Run PostgreSQL integration tests
+        run: python -m pytest tests/integration
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build application image
+        run: docker build --tag ai-workspace-v0:ci .
