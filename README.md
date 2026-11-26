@@ -4,16 +4,21 @@ A Python backend foundation for safe document workflows.
 
 ## Current scope
 
-AI Workspace v0 currently provides a small FastAPI API for creating and reading documents:
+AI Workspace v0 provides a small FastAPI API for creating, reading, editing, and publishing
+documents:
 
 - `GET /health` reports service health.
 - `GET /documents` returns the current document collection.
 - `POST /documents` creates a document with a server-assigned ID.
 - `GET /documents/{document_id}` returns one document or `404 Not Found`.
+- `PATCH /documents/{document_id}` replaces a draft's content.
+- `POST /documents/{document_id}/publish` publishes a draft.
 
 The API keeps request schemas, domain models, application orchestration, PostgreSQL-backed production storage, and public response schemas separate. FastAPI routes call `DocumentService`, which constructs `Author` and `Document` domain models and delegates server-owned identity and storage through a narrow repository contract. Production composition uses `PostgresDocumentRepository`; deterministic unit and API tests explicitly use `InMemoryDocumentRepository`.
 
-Handled domain validation failures are translated at the HTTP boundary and logged once with privacy-safe structured context. Unexpected built-in failures remain server errors rather than being presented as client validation failures.
+The API translates expected validation failures and state conflicts at the HTTP
+boundary. The create route logs domain validation failures with privacy-safe
+structured context. Unexpected failures remain server errors.
 
 ## Requirements
 
@@ -141,7 +146,8 @@ PostgreSQL tests:
 ./.venv/bin/python -m pytest
 ```
 
-Latest ordinary-suite verification: 68 tests passed, 3 PostgreSQL integration
+Before draft editing and publishing, ordinary-suite verification recorded 68
+passing tests. The 3 PostgreSQL integration
 tests were skipped because `TEST_DATABASE_URL` was not configured, and 2 known
 upstream test-client deprecation warnings remained. A separate configured
 PostgreSQL integration run proved API create, retrieve, and list behavior,
@@ -217,7 +223,22 @@ GET /documents/{document_id}
 
 A document that does not exist returns `404 Not Found`.
 
-Invalid request shapes and domain validation failures return `422 Unprocessable Content`.
+Invalid request shapes return `422 Unprocessable Content`. The create endpoint
+also returns `422` for domain validation failures.
+
+### Edit a draft's content
+
+Send `PATCH /documents/{document_id}` with a JSON body such as
+`{"content": "Updated draft"}`. The response is `200 OK` with the updated
+document. A missing ID returns `404 Not Found`. A published document returns
+`409 Conflict` and its content stays unchanged.
+
+### Publish a draft
+
+Send `POST /documents/{document_id}/publish`. The response is `200 OK` with
+the document and `is_published: true`. A missing document returns
+`404 Not Found`. A repeat publish returns `409 Conflict` and leaves the
+document unchanged.
 
 ## Current limitations
 

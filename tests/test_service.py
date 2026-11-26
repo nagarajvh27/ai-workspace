@@ -42,6 +42,28 @@ def test_get_document_returns_stored_document_or_none() -> None:
     assert service.get_document(999) is None
 
 
+def test_publish_document_returns_updated_document() -> None:
+    service, repository = make_service()
+    document_id, draft = service.create_document(
+        title="Design notes",
+        content="First draft",
+        author_name="Ada Lovelace",
+    )
+    assert draft.is_published is False
+
+    published = service.publish_document(document_id)
+
+    assert published is draft
+    assert published.is_published is True
+    assert repository.get(document_id) is published
+
+
+def test_publish_missing_document_returns_none() -> None:
+    service, _ = make_service()
+
+    assert service.publish_document(999) is None
+
+
 def test_list_documents_returns_stored_documents_with_ids() -> None:
     service, _ = make_service()
     first_id, first_document = service.create_document(

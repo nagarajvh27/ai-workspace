@@ -114,6 +114,47 @@ class PostgresDocumentRepository:
         finally:
             session.close()
 
+    def update_content(self, document_id: int, content: str) -> Document | None:
+        session = self._session_factory()
+
+        try:
+            # Keep the draft check and update in the same transaction.
+            record = session.get(DocumentRecord, document_id, with_for_update=True)
+            if record is None:
+                return None
+
+            document = _document_from_record(record)
+            document.update_content(content)
+            record.content = document.content
+            session.commit()
+            return document
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def publish(self, document_id: int) -> Document | None:
+        session = self._session_factory()
+
+        try:
+            record = session.get(
+                DocumentRecord, document_id, with_for_update=True
+            )
+            if record is None:
+                return None
+
+            document = _document_from_record(record)
+            document.publish()
+            record.is_published = document.is_published
+            session.commit()
+            return document
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def list_all(self) -> list[tuple[int, Document]]:
         session = self._session_factory()
 

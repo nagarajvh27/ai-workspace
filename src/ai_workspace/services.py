@@ -28,5 +28,13 @@ class DocumentService:
     def get_document(self, document_id: int) -> Document | None:
         return self._repository.get(document_id)
 
+    def edit_document_content(
+        self, document_id: int, content: str
+    ) -> Document | None:
+        return self._repository.update_content(document_id, content)
+
+    def publish_document(self, document_id: int) -> Document | None:
+        return self._repository.publish(document_id)
+
     def list_documents(self) -> list[tuple[int, Document]]:
         return self._repository.list_all()

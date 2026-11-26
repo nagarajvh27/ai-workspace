@@ -18,6 +18,12 @@ class CountingDocumentRepository:
     def get(self, document_id: int) -> Document | None:
         return self._repository.get(document_id)
 
+    def update_content(self, document_id: int, content: str) -> Document | None:
+        return self._repository.update_content(document_id, content)
+
+    def publish(self, document_id: int) -> Document | None:
+        return self._repository.publish(document_id)
+
     def list_all(self) -> list[tuple[int, Document]]:
         self.list_all_call_count += 1
         return self._repository.list_all()
@@ -77,4 +83,19 @@ def test_create_document_invalidates_cached_collection() -> None:
     assert created_response.status_code == 201
     assert refreshed_response.status_code == 200
     assert refreshed_response.json() == [created_response.json()]
+    assert repository.list_all_call_count == 2
+
+
+def test_edit_document_invalidates_cached_collection() -> None:
+    client, repository = make_client()
+    created_response = client.post("/documents", json=document_payload())
+    assert created_response.status_code == 201
+    assert client.get("/documents").status_code == 200
+
+    edit_response = client.patch(
+        created_response.headers["location"], json={"content": "Updated draft"}
+    )
+
+    assert edit_response.status_code == 200
+    assert client.get("/documents").json() == [edit_response.json()]
     assert repository.list_all_call_count == 2

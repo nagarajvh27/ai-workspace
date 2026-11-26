@@ -10,6 +10,12 @@ class DocumentRepository(Protocol):
     def get(self, document_id: int) -> Document | None:
         ...
 
+    def update_content(self, document_id: int, content: str) -> Document | None:
+        ...
+
+    def publish(self, document_id: int) -> Document | None:
+        ...
+
     def list_all(self) -> list[tuple[int, Document]]:
         ...
 
@@ -27,6 +33,22 @@ class InMemoryDocumentRepository:
 
     def get(self, document_id: int) -> Document | None:
         return self._documents_by_id.get(document_id)
+
+    def update_content(self, document_id: int, content: str) -> Document | None:
+        document = self.get(document_id)
+        if document is None:
+            return None
+
+        document.update_content(content)
+        return document
+
+    def publish(self, document_id: int) -> Document | None:
+        document = self.get(document_id)
+        if document is None:
+            return None
+
+        document.publish()
+        return document
 
     def list_all(self) -> list[tuple[int, Document]]:
         return list(self._documents_by_id.items())

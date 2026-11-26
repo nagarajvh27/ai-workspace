@@ -81,3 +81,35 @@ def test_created_document_can_be_retrieved_and_listed(
     assert retrieved_response.json() == created_document
     assert listed_response.status_code == 200
     assert listed_response.json() == [created_document]
+
+
+@pytest.mark.parametrize(("is_published", "expected_status"), [(False, 200), (True, 409)])
+def test_edit_document_content_in_postgresql(
+    postgres_client: TestClient,
+    postgres_engine: Engine,
+    is_published: bool,
+    expected_status: int,
+) -> None:
+    payload = document_payload()
+    created_response = postgres_client.post("/documents", json=payload)
+    assert created_response.status_code == 201
+    document_url = created_response.headers["location"]
+    document_id = created_response.json()["id"]
+
+    with postgres_engine.begin() as connection:
+        connection.execute(
+            text("UPDATE documents SET is_published = :published WHERE id = :id"),
+            {"published": is_published, "id": document_id},
+        )
+
+    response = postgres_client.patch(document_url, json={"content": "Updated draft"})
+
+    assert response.status_code == expected_status
+    expected_content = payload["content"] if is_published else "Updated draft"
+    with postgres_engine.connect() as connection:
+        row = connection.execute(
+            text("SELECT content, is_published FROM documents WHERE id = :id"),
+            {"id": document_id},
+        ).one()
+
+    assert row == (expected_content, is_published)

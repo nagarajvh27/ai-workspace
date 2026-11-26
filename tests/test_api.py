@@ -130,6 +130,102 @@ def test_list_documents_returns_created_document(
     assert response.json() == [created_response.json()]
 
 
+def test_edit_draft_document_content(client: TestClient) -> None:
+    created_response = client.post("/documents", json=document_payload())
+    assert created_response.status_code == 201
+    document_url = created_response.headers["location"]
+
+    edit_response = client.patch(
+        document_url,
+        json={"content": "Updated draft"},
+    )
+
+    assert edit_response.status_code == 200
+    retrieved_response = client.get(document_url)
+    assert retrieved_response.status_code == 200
+    assert retrieved_response.json()["content"] == "Updated draft"
+
+
+def test_publish_draft_document(client: TestClient) -> None:
+    created = client.post("/documents", json=document_payload())
+    assert created.status_code == 201
+    document_url = created.headers["location"]
+
+    published = client.post(f"{document_url}/publish")
+    assert published.status_code == 200
+
+    retrieved = client.get(document_url)
+    assert retrieved.status_code == 200
+    assert retrieved.json()["is_published"] is True
+
+
+def test_publish_already_published_document_returns_conflict(
+    client: TestClient,
+) -> None:
+    created = client.post("/documents", json=document_payload())
+    assert created.status_code == 201
+    document_url = created.headers["location"]
+    publish_url = f"{document_url}/publish"
+    published = client.post(publish_url)
+    assert published.status_code == 200
+
+    repeated = client.post(publish_url)
+
+    assert repeated.status_code == 409
+    assert repeated.json() == {"detail": "Document is already published"}
+    retrieved = client.get(document_url)
+    assert retrieved.status_code == 200
+    assert retrieved.json() == published.json()
+
+
+def test_publish_missing_document_returns_not_found(client: TestClient) -> None:
+    response = client.post("/documents/999/publish")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Document not found"}
+
+
+def test_edit_published_document_keeps_original_content(
+    client: TestClient,
+    document_repository: InMemoryDocumentRepository,
+) -> None:
+    created_response = client.post("/documents", json=document_payload())
+    assert created_response.status_code == 201
+    original = created_response.json()
+    document = document_repository.get(original["id"])
+    assert document is not None
+    document.publish()
+    document_url = created_response.headers["location"]
+
+    edit_response = client.patch(document_url, json={"content": "Updated draft"})
+
+    assert edit_response.status_code == 409
+    assert edit_response.json() == {"detail": "Cannot modify a published document"}
+    retrieved_response = client.get(document_url)
+    assert retrieved_response.status_code == 200
+    assert retrieved_response.json() == {**original, "is_published": True}
+
+
+def test_edit_missing_document_returns_not_found(client: TestClient) -> None:
+    response = client.patch("/documents/999", json={"content": "Updated draft"})
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Document not found"}
+
+
+def test_edit_document_rejects_fields_other_than_content(client: TestClient) -> None:
+    created_response = client.post("/documents", json=document_payload())
+    assert created_response.status_code == 201
+    document_url = created_response.headers["location"]
+
+    response = client.patch(
+        document_url, json={"content": "Updated draft", "is_published": True}
+    )
+
+    assert response.status_code == 422
+    assert client.get(document_url).json() == created_response.json()
+
+
 def test_get_missing_document_returns_not_found(
     client: TestClient,
 ) -> None:

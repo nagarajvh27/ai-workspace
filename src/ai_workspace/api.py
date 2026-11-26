@@ -3,7 +3,10 @@ import logging
 from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from ai_workspace.exceptions import DomainValidationError
+from ai_workspace.exceptions import (
+    DomainValidationError,
+    PublishedDocumentError,
+)
 from ai_workspace.models.document import Document
 from ai_workspace.services import DocumentService
 
@@ -16,6 +19,12 @@ class DocumentCreate(BaseModel):
     title: str
     content: str
     author_name: str
+
+
+class DocumentContentUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str
 
 
 class DocumentResponse(BaseModel):
@@ -106,6 +115,52 @@ def create_app(document_service: DocumentService) -> FastAPI:
     )
     def get_document(document_id: int) -> DocumentResponse:
         document = document_service.get_document(document_id)
+
+        if document is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        return _to_document_response(document_id, document)
+
+    @app.patch(
+        "/documents/{document_id}",
+        response_model=DocumentResponse,
+    )
+    def edit_document_content(
+        document_id: int, request: DocumentContentUpdate
+    ) -> DocumentResponse:
+        try:
+            document = document_service.edit_document_content(
+                document_id, request.content
+            )
+        except PublishedDocumentError as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(error),
+            ) from error
+
+        if document is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        return _to_document_response(document_id, document)
+
+    @app.post(
+        "/documents/{document_id}/publish",
+        response_model=DocumentResponse,
+    )
+    def publish_document(document_id: int) -> DocumentResponse:
+        try:
+            document = document_service.publish_document(document_id)
+        except PublishedDocumentError as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(error),
+            ) from error
 
         if document is None:
             raise HTTPException(

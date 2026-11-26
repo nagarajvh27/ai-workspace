@@ -20,6 +20,18 @@ class CachingDocumentRepository:
     def get(self, document_id: int) -> Document | None:
         return self._repository.get(document_id)
 
+    def update_content(self, document_id: int, content: str) -> Document | None:
+        document = self._repository.update_content(document_id, content)
+        if document is not None:
+            self._cached_documents = None
+        return document
+
+    def publish(self, document_id: int) -> Document | None:
+        document = self._repository.publish(document_id)
+        if document is not None:
+            self._cached_documents = None
+        return document
+
     def list_all(self) -> list[tuple[int, Document]]:
         if self._cached_documents is None:
             self._cached_documents = self._repository.list_all()

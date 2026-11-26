@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 
-from ai_workspace.exceptions import DomainValidationError
+from ai_workspace.exceptions import (
+    DomainValidationError,
+    PublishedDocumentError,
+)
 
 
 def _normalize_name(name: object) -> str:
@@ -49,7 +52,7 @@ class Document:
 
     def _ensure_draft(self) -> None:
         if self._published:
-            raise DomainValidationError(
+            raise PublishedDocumentError(
                 "Cannot modify a published document"
             )
 
@@ -72,9 +75,8 @@ class Document:
 
 
     def publish(self) -> None:
-
         if self._published:
-            raise DomainValidationError(
+            raise PublishedDocumentError(
                 "Document is already published"
             )
 
