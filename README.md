@@ -149,6 +149,20 @@ direct committed row storage, and rollback of a flushed insert after an
 injected pre-commit failure. Earlier manual PostgreSQL 18.6 verification also
 confirmed persistence across an application restart.
 
+## Continuous integration
+
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and on
+pull requests targeting `main`. It runs three independent jobs:
+
+- Ordinary tests and dependency checks on Python 3.12.
+- Integration tests against a temporary PostgreSQL 18 service using
+  `ai_workspace_test`.
+- A Docker image build.
+
+The Docker job verifies that the image builds. The local Docker Compose
+procedure above exercises the running app and database. Deployment remains
+outside the workflow.
+
 ## API overview
 
 ### Health check
@@ -207,9 +221,10 @@ Invalid request shapes and domain validation failures return `422 Unprocessable 
 
 ## Current limitations
 
-The repository includes a local Docker Compose setup, but schema changes still
-use explicit bootstrap SQL rather than Alembic migrations. The application
-does not yet include authentication, CI, or a production deployment.
+The database uses explicit bootstrap SQL. Versioned schema migrations remain
+future work. Document endpoints currently accept anonymous requests, and the
+document access policy is still open. The application has been verified
+locally with Docker Compose. Production deployment remains future work.
 
 Most unit and API tests intentionally compose `InMemoryDocumentRepository`.
 The marked integration tests separately compose `PostgresDocumentRepository`
