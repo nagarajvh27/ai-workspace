@@ -20,6 +20,27 @@ The API translates expected validation failures and state conflicts at the HTTP
 boundary. The create route logs domain validation failures with privacy-safe
 structured context. Unexpected failures remain server errors.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    Client["Client or Swagger UI"] -->|HTTP request| API
+
+    subgraph App["AI Workspace v0"]
+        API["FastAPI + Pydantic<br/>Routes and request validation"]
+        Service["DocumentService<br/>Coordinates document operations"]
+        Repo["PostgresDocumentRepository<br/>SQLAlchemy sessions and transactions"]
+        Domain["Author and Document<br/>Domain rules and publication state"]
+
+        API --> Service
+        Service -->|DocumentRepository interface| Repo
+        Service -. creates .-> Domain
+        Repo -. applies document rules .-> Domain
+    end
+
+    Repo -->|SQL| DB[("PostgreSQL<br/>documents table")]
+```
+
 ## Requirements
 
 Choose one local setup:
