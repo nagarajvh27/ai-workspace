@@ -59,11 +59,11 @@ def create_app(document_service: DocumentService) -> FastAPI:
         "/documents",
         response_model=list[DocumentResponse],
     )
-    def list_documents() -> list[DocumentResponse]:
+    def list_documents(published: bool | None = None) -> list[DocumentResponse]:
         return [
             _to_document_response(document_id, document)
             for document_id, document
-            in document_service.list_documents()
+            in document_service.list_documents(published=published)
         ]
 
     @app.post(

@@ -155,14 +155,20 @@ class PostgresDocumentRepository:
         finally:
             session.close()
 
-    def list_all(self) -> list[tuple[int, Document]]:
+    def list_all(
+        self, *, published: bool | None = None
+    ) -> list[tuple[int, Document]]:
         session = self._session_factory()
 
         try:
-            statement = select(DocumentRecord).order_by(
-                DocumentRecord.id
-            )
-            records = session.scalars(statement).all()
+            statement = select(DocumentRecord)
+            if published is not None:
+                statement = statement.where(
+                    DocumentRecord.is_published.is_(published)
+                )
+            records = session.scalars(
+                statement.order_by(DocumentRecord.id)
+            ).all()
 
             return [
                 (record.id, _document_from_record(record))

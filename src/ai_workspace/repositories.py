@@ -16,7 +16,9 @@ class DocumentRepository(Protocol):
     def publish(self, document_id: int) -> Document | None:
         ...
 
-    def list_all(self) -> list[tuple[int, Document]]:
+    def list_all(
+        self, *, published: bool | None = None
+    ) -> list[tuple[int, Document]]:
         ...
 
 
@@ -50,8 +52,14 @@ class InMemoryDocumentRepository:
         document.publish()
         return document
 
-    def list_all(self) -> list[tuple[int, Document]]:
-        return list(self._documents_by_id.items())
+    def list_all(
+        self, *, published: bool | None = None
+    ) -> list[tuple[int, Document]]:
+        return [
+            (document_id, document)
+            for document_id, document in self._documents_by_id.items()
+            if published is None or document.is_published == published
+        ]
 
     def clear(self) -> None:
         self._documents_by_id.clear()

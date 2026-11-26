@@ -24,9 +24,11 @@ class CountingDocumentRepository:
     def publish(self, document_id: int) -> Document | None:
         return self._repository.publish(document_id)
 
-    def list_all(self) -> list[tuple[int, Document]]:
+    def list_all(
+        self, *, published: bool | None = None
+    ) -> list[tuple[int, Document]]:
         self.list_all_call_count += 1
-        return self._repository.list_all()
+        return self._repository.list_all(published=published)
 
 
 def make_client() -> tuple[TestClient, CountingDocumentRepository]:
@@ -98,4 +100,22 @@ def test_edit_document_invalidates_cached_collection() -> None:
 
     assert edit_response.status_code == 200
     assert client.get("/documents").json() == [edit_response.json()]
+    assert repository.list_all_call_count == 2
+
+
+def test_filtered_list_preserves_cached_full_collection() -> None:
+    client, repository = make_client()
+    draft = client.post("/documents", json=document_payload())
+    to_publish = client.post("/documents", json=document_payload())
+    assert draft.status_code == 201
+    assert to_publish.status_code == 201
+    published = client.post(f"{to_publish.headers['location']}/publish")
+    assert published.status_code == 200
+
+    all_documents = [draft.json(), published.json()]
+    assert client.get("/documents").json() == all_documents
+    filtered = client.get("/documents", params={"published": "false"})
+    assert filtered.status_code == 200
+    assert filtered.json() == [draft.json()]
+    assert client.get("/documents").json() == all_documents
     assert repository.list_all_call_count == 2

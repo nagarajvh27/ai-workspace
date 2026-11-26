@@ -113,3 +113,24 @@ def test_edit_document_content_in_postgresql(
         ).one()
 
     assert row == (expected_content, is_published)
+
+
+def test_list_documents_filters_by_published_status_in_postgresql(
+    postgres_client: TestClient,
+) -> None:
+    draft = postgres_client.post("/documents", json=document_payload())
+    to_publish = postgres_client.post("/documents", json=document_payload())
+    assert draft.status_code == 201
+    assert to_publish.status_code == 201
+    published = postgres_client.post(f"{to_publish.headers['location']}/publish")
+    assert published.status_code == 200
+
+    drafts = postgres_client.get("/documents", params={"published": "false"})
+    published_documents = postgres_client.get(
+        "/documents", params={"published": "true"}
+    )
+
+    assert drafts.status_code == 200
+    assert drafts.json() == [draft.json()]
+    assert published_documents.status_code == 200
+    assert published_documents.json() == [published.json()]

@@ -130,6 +130,39 @@ def test_list_documents_returns_created_document(
     assert response.json() == [created_response.json()]
 
 
+@pytest.mark.parametrize(
+    ("params", "expected_titles"),
+    [
+        ({}, ["Draft", "Published"]),
+        ({"published": "false"}, ["Draft"]),
+        ({"published": "true"}, ["Published"]),
+    ],
+)
+def test_list_documents_filters_by_published_status(
+    client: TestClient,
+    params: dict[str, str],
+    expected_titles: list[str],
+) -> None:
+    draft = client.post("/documents", json={**document_payload(), "title": "Draft"})
+    to_publish = client.post(
+        "/documents", json={**document_payload(), "title": "Published"}
+    )
+    assert draft.status_code == 201
+    assert to_publish.status_code == 201
+    assert client.post(f"{to_publish.headers['location']}/publish").status_code == 200
+
+    response = client.get("/documents", params=params)
+
+    assert response.status_code == 200
+    assert [document["title"] for document in response.json()] == expected_titles
+
+
+def test_list_documents_rejects_invalid_published_filter(client: TestClient) -> None:
+    response = client.get("/documents", params={"published": "maybe"})
+
+    assert response.status_code == 422
+
+
 def test_edit_draft_document_content(client: TestClient) -> None:
     created_response = client.post("/documents", json=document_payload())
     assert created_response.status_code == 201

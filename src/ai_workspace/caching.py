@@ -32,7 +32,12 @@ class CachingDocumentRepository:
             self._cached_documents = None
         return document
 
-    def list_all(self) -> list[tuple[int, Document]]:
+    def list_all(
+        self, *, published: bool | None = None
+    ) -> list[tuple[int, Document]]:
+        if published is not None:
+            return self._repository.list_all(published=published)
+
         if self._cached_documents is None:
             self._cached_documents = self._repository.list_all()
 

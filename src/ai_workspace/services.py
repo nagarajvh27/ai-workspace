@@ -36,5 +36,7 @@ class DocumentService:
     def publish_document(self, document_id: int) -> Document | None:
         return self._repository.publish(document_id)
 
-    def list_documents(self) -> list[tuple[int, Document]]:
-        return self._repository.list_all()
+    def list_documents(
+        self, *, published: bool | None = None
+    ) -> list[tuple[int, Document]]:
+        return self._repository.list_all(published=published)

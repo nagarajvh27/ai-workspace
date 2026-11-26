@@ -226,6 +226,10 @@ GET /documents
 GET /documents/{document_id}
 ```
 
+`GET /documents` returns all documents by default. Use
+`GET /documents?published=false` for drafts only or
+`GET /documents?published=true` for published documents only.
+
 A document that does not exist returns `404 Not Found`.
 
 Invalid request shapes return `422 Unprocessable Content`. The create endpoint
