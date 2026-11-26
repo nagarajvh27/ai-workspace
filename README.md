@@ -74,11 +74,16 @@ The Compose setup runs FastAPI and PostgreSQL 18 as separate services. It uses
 the existing `pyproject.toml` dependency metadata and
 `sql/documents_schema.sql` bootstrap DDL.
 
-Set a local-only, URL-safe PostgreSQL password in the current shell:
+Set a local-only PostgreSQL password in the current shell. Use the original
+password if the Compose database already has a volume:
 
 ```bash
 export POSTGRES_PASSWORD="choose-a-local-development-password"
 ```
+
+Compose passes the original password to the app as a separate setting.
+SQLAlchemy builds the connection URL, so characters such as `@` do not require
+manual percent-encoding here.
 
 Then build and start the services:
 
